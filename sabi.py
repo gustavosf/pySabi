@@ -55,10 +55,9 @@ class SABi:
 			- ...
 		"""
 		if (self.session is not None): return
-		page = urllib2.urlopen(self.res).read()
+		page = self.__getpage()
 		m = re.search('\/([A-Z0-9]+)-[0-9]{5}\?.*?login-session', page)
 		self.session = m.group(1)
-		login_link = self.__mklink()
 		data = {
 			'func': 'login-session',
 			'login_source': 'bor-info',
@@ -69,16 +68,25 @@ class SABi:
 			'y': 0,
 		}
 		# Aproveita para recuperar alguns dados úteis
-		page = urllib2.urlopen(login_link, urlencode(data)).read()
+		page = self.__getpage(self.__mklink(), urlencode(data))
 		self.data['loan'] = re.search('bor-loan.*>([0-9\.-]+)', page).group(1)
 		self.data['hold'] = re.search('bor-hold.*>([0-9\.-]+)', page).group(1)
 		self.data['cash'] = re.search('bor-cash.*>([0-9\.-]+)', page).group(1)
 
 	def __mklink(self, func = None):
 		"""Gerador de links"""
-		query = '?adm_library=URS50&func=bor-' + func if func is not None else ''
-		link = self.res + self.session + '-' + str(randint(10000,99999)) + query
+		if self.session is not None:
+			query = '?adm_library=URS50&func=bor-' + func if func else ''
+			link = self.res + self.session + '-' + str(randint(10000,99999)) 
+			link = link + query
+		else:
+			link = self.res
 		return link
+
+	def __getpage(self, func = None, param = None):
+		link = self.__mklink(func)
+		page = urllib2.urlopen(link, param).read()
+		return page
 
 	""" Exemplos """
 	def loan(self):
