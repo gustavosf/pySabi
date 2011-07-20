@@ -58,7 +58,7 @@ class SABi:
 		page = urllib2.urlopen(self.res).read()
 		m = re.search('\/([A-Z0-9]+)-[0-9]{5}\?.*?login-session', page)
 		self.session = m.group(1)
-		login_link = self.res + self.session + '-' + str(randint(10000,99999))
+		login_link = self.__mklink()
 		data = {
 			'func': 'login-session',
 			'login_source': 'bor-info',
@@ -73,6 +73,12 @@ class SABi:
 		self.data['loan'] = re.search('bor-loan.*>([0-9\.-]+)', page).group(1)
 		self.data['hold'] = re.search('bor-hold.*>([0-9\.-]+)', page).group(1)
 		self.data['cash'] = re.search('bor-cash.*>([0-9\.-]+)', page).group(1)
+
+	def __mklink(self, func = None):
+		"""Gerador de links"""
+		query = '?adm_library=URS50&func=bor-' + func if func is not None else ''
+		link = self.res + self.session + '-' + str(randint(10000,99999)) + query
+		return link
 
 	""" Exemplos """
 	def loan(self):
