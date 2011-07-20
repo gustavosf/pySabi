@@ -18,6 +18,7 @@ Uso:
 
 from random import randint
 from urllib import urlencode
+from HTMLParser import HTMLParser
 import urllib2
 import re
 
@@ -86,7 +87,32 @@ class SABi:
 	def __getpage(self, func = None, param = None):
 		link = self.__mklink(func)
 		page = urllib2.urlopen(link, param).read()
+		# remoção de comentários e novas-linhas
+		page = re.sub('<!--.*?-->', '', page.replace('\n', ''))
 		return page
+
+	def loanList(self):
+		page = self.__getpage('loan')
+		h = HTMLParser()
+
+		# extrai o header da tabela
+		header = re.findall('class=text3.*?>(.+?)<', page)
+		header = [h.unescape(i).strip() for i in header]
+		
+		# extrai os dados da tabela
+		data = re.findall('class=td1.*?>([^<>]+?)<', page)
+		data = [h.unescape(i).strip() for i in data]
+
+		l = len(header) - 1
+		item = {}
+		itens = []
+		for i in range(len(data)):
+			if len(item) == l:
+				itens.append(item)
+				item = {}
+			item[header[i%l]] = data[i]
+
+		return itens
 
 	""" Exemplos """
 	def loan(self):
