@@ -30,7 +30,7 @@ class SABi:
 		portanto o username é o número da matrícula (8 dígitos, zero-fill)
 		e a senha é outro número de 6 dígitos.
 		"""
-		self.res = "http://sabi.ufrgs.br/F"
+		self.res = "http://sabi.ufrgs.br/F/"
 		self.data = {
 			'loan': None,
 			'hold': None,
@@ -58,7 +58,7 @@ class SABi:
 		page = urllib2.urlopen(self.res).read()
 		m = re.search('\/([A-Z0-9]+)-[0-9]{5}\?.*?login-session', page)
 		self.session = m.group(1)
-		login_link = self.res + '/' + self.session + '-' + str(randint(10000,99999))
+		login_link = self.res + self.session + '-' + str(randint(10000,99999))
 		data = {
 			'func': 'login-session',
 			'login_source': 'bor-info',
