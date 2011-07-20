@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf8 -*-
 
 """Python client library for sabi.ufrgs.br
 
@@ -61,7 +62,7 @@ class SABi:
 			'y': 0,
 		}
 		# Aproveita para recuperar alguns dados úteis
-		page = urllib2.urlopen(login_link, urlencode(data))
+		page = urllib2.urlopen(login_link, urlencode(data)).read()
 		self.data['loan'] = re.search('bor-loan.*>([0-9\.-]+)', page).group(1)
 		self.data['hold'] = re.search('bor-hold.*>([0-9\.-]+)', page).group(1)
 		self.data['cash'] = re.search('bor-cash.*>([0-9\.-]+)', page).group(1)
