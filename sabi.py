@@ -10,20 +10,16 @@ informações interessantes de páginas web.
 	
 Uso:
 	s = SABi(123456, 112233)
-	print "Livros Emprestados: " + s.loan()
-	print "Livros Reservados: " + s.hold()
-	print "Dívida: " + s.cash()
-
+	
 """
 
 from random import randint
-from urllib import urlencode
-from HTMLParser import HTMLParser
-import urllib2
 from BeautifulSoup import BeautifulSoup
+from urllib import urlencode
+import urllib2
 import re
 
-class SABi:
+class SABiRequester: 
 	def __init__(self, username, password):
 		"""Construtor
 
@@ -33,11 +29,6 @@ class SABi:
 		e a senha é outro número de 6 dígitos.
 		"""
 		self.res = "http://sabi.ufrgs.br/F/"
-		self.data = {
-			'loan': None,
-			'hold': None,
-			'cash': None,
-		}
 		self.session = None
 		self.username = "%08d" % username  # zerofill
 		self.password = password
@@ -57,7 +48,7 @@ class SABi:
 			- ...
 		"""
 		if (self.session is not None): return
-		page = self.__getpage()
+		page = self.getpage()
 		m = re.search('\/([A-Z0-9]+)-[0-9]{5}\?.*?login-session', page)
 		self.session = m.group(1)
 		data = {
@@ -69,11 +60,9 @@ class SABi:
 			'x': 0,
 			'y': 0,
 		}
-		# Aproveita para recuperar alguns dados úteis
-		page = self.__getpage(self.__mklink(), urlencode(data))
-		self.data['loan'] = re.search('bor-loan.*>([0-9\.-]+)', page).group(1)
-		self.data['hold'] = re.search('bor-hold.*>([0-9\.-]+)', page).group(1)
-		self.data['cash'] = re.search('bor-cash.*>([0-9\.-]+)', page).group(1)
+		# loga via POST
+		self.getpage(self.__mklink(), urlencode(data))
+		return True
 
 	def __mklink(self, func = None):
 		"""Gerador de links"""
@@ -85,20 +74,20 @@ class SABi:
 			link = self.res
 		return link
 
-	def __getpage(self, func = None, param = None):
+	def getpage(self, func = None, param = None):
 		link = self.__mklink(func)
 		page = urllib2.urlopen(link, param).read()
 		# remoção de comentários e novas-linhas
 		page = re.sub('<!--.*?-->', '', page.replace('\n', ''))
 		return page
 
-	def __getsoup(self, func = None, param = None):
+	def getsoup(self, func = None, param = None):
 		"""Busca uma pagina e retorna um soup"""
-		page = self.__getpage(func, param)
+		page = self.getpage(func, param)
 		return BeautifulSoup(page, convertEntities=BeautifulSoup.HTML_ENTITIES)
 	
-	def __getlist(self, func):
-		soup = self.__getsoup(func)
+	def getlist(self, func):
+		soup = self.getsoup(func)
 
 		table = soup.find('table', cellspacing=2)
 		trs = table.findAll('tr')
@@ -116,12 +105,9 @@ class SABi:
 
 		return itens
 
-	""" Exemplos """
-	def loan(self):
-		return self.data['loan']
-
-	def hold(self):
-		return self.data['hold']
+class SABi:
+	def __init__(self, username, password):
+		self.r = SABiRequester(username, password)
 	
-	def cash(self):
-		return self.data['cash']
+	def loanList(self):
+		return self.r.getlist('loan')
