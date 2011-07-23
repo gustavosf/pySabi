@@ -28,7 +28,7 @@ class SABiRequester:
 		portanto o username é o número da matrícula (8 dígitos, zero-fill)
 		e a senha é outro número de 6 dígitos.
 		"""
-		self.res = "http://sabi.ufrgs.br/F/"
+		self.__res = "http://sabi.ufrgs.br/F/"
 		self.session = None
 		self.username = "%08d" % username  # zerofill
 		self.password = password
@@ -61,24 +61,35 @@ class SABiRequester:
 			'y': 0,
 		}
 		# loga via POST
-		self.getpage(self.__mklink(), urlencode(data))
+		self.postpage(data)
 		return True
 
-	def __mklink(self, func = None):
+	def __mklink(self):
 		"""Gerador de links"""
 		if self.session is not None:
-			query = '?adm_library=URS50&func=bor-' + func if func else ''
-			link = self.res + self.session + '-' + str(randint(10000,99999)) 
-			link = link + query
+			link = self.__res + self.session + '-' + str(randint(10000,99999)) 
 		else:
-			link = self.res
+			link = self.__res
 		return link
 
 	def getpage(self, func = None, param = None):
-		link = self.__mklink(func)
-		page = urllib2.urlopen(link, param).read()
-		# remoção de comentários e novas-linhas
-		page = re.sub('<!--.*?-->', '', page.replace('\n', ''))
+		link = self.__mklink()
+		if func:
+			base = {
+				'adm_library': 'URS50',
+				'func': 'bor-' + func
+			}
+			if param:
+				base = dict(base, **param)
+			base = urlencode(base)
+		else:
+			base = None
+		page = urllib2.urlopen(link, base).read()
+		return page
+
+	def postpage(self, param = None):
+		link = self.__mklink()
+		page = urllib2.urlopen(link, urlencode(param)).read()
 		return page
 
 	def getsoup(self, func = None, param = None):
@@ -107,7 +118,73 @@ class SABiRequester:
 
 class SABi:
 	def __init__(self, username, password):
-		self.r = SABiRequester(username, password)
+		self.__r = SABiRequester(username, password)
 	
 	def loanList(self):
-		return self.r.getlist('loan')
+		loans = self.__r.getlist('loan')
+		loans = [ Loan(l, self.__r) for l in loans ]
+		return loans
+
+class Loan:
+	def __init__(self, obj, requester):
+		link = obj['N.']
+		obj['N.'] = link[0]
+		obj['link'] = link[1]
+		obj['doc'] = re.search('doc_number=([0-9]+)', link[1]).group(1)
+		obj['seq'] = re.search('item_sequence=([0-9]+)', link[1]).group(1)
+		obj['index'] = re.search('index=([0-9]+)', link[1]).group(1)
+		self.__obj = obj
+		self.__r = requester
+		self.__translate = {
+			'link': 'link',
+			'doc': 'doc',
+			'seq': 'seq',
+			'index': 'index',
+			'obs': 'obs',
+			'barcode': 'barcode',
+			'date': 'date',
+			'num': 'N.',
+			'desc': u'Descrição',
+			'title': u'Título',
+			'dev': u'Data prev. devolução',
+			'author': u'Autor',
+			'lib': u'Biblioteca',
+			'debt': u'Débito',
+
+		}
+		
+	def __getattr__(self, name):
+		try:
+			return self.__obj[self.__translate[name]]
+		except:
+			if (name in ('obs', 'barcode', 'date')):
+				self.__loadAdditionalInfo()
+				return self.__obj[self.__translate[name]]
+			else:
+				raise AttributeError
+	
+	def data(self):
+		data = {
+			'doc_number': self.doc,
+			'item_sequence': self.seq,
+			'index': self.index
+		}
+		soup = self.__r.getsoup('loan-exp', data)
+		tds = soup.findAll('td', {'class':'td1'})
+		tds = [t.text for t in tds]
+		data = dict(zip(tds[::2],tds[1::2]))
+		return data
+
+	def __loadAdditionalInfo(self):
+		data = {
+			'doc_number': self.doc,
+			'item_sequence': self.seq,
+			'index': self.index
+		}
+		soup = self.__r.getsoup('loan-exp', data)
+		tds = soup.findAll('td', {'class':'td1'})
+		tds = [t.text for t in tds]
+		data = dict(zip(tds[::2],tds[1::2]))
+		self.__obj['obs'] = data[u'Observação']
+		self.__obj['barcode'] = data[u'Código de barras']
+		self.__obj['date'] = data[u'Data empréstimo']
