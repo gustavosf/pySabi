@@ -20,6 +20,7 @@ from random import randint
 from urllib import urlencode
 from HTMLParser import HTMLParser
 import urllib2
+from BeautifulSoup import BeautifulSoup
 import re
 
 class SABi:
@@ -91,6 +92,11 @@ class SABi:
 		page = re.sub('<!--.*?-->', '', page.replace('\n', ''))
 		return page
 
+	def __getsoup(self, func = None, param = None):
+		"""Busca uma pagina e retorna um soup"""
+		page = self.__getpage(func, param)
+		return BeuatifulSoup(page)
+	
 	def loanList(self):
 		page = self.__getpage('loan')
 		h = HTMLParser()
