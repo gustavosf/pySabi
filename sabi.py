@@ -97,8 +97,7 @@ class SABi:
 		page = self.__getpage(func, param)
 		return BeautifulSoup(page, convertEntities=BeautifulSoup.HTML_ENTITIES)
 	
-	def loanList(self):
-		page = self.__getpage('loan')
+	def __getlist(self, func):
 		soup = self.__getsoup('loan')
 
 		table = soup.find('table', cellspacing=2)
@@ -107,7 +106,11 @@ class SABi:
 		itens = []
 		headers = [th.text for th in trs[0].findAll('th')]
 		for tr in trs[1:]:
-			data = [td.text for td in tr.findAll('td')]
+			data = [
+				(td.text, td.a.get('href')) if td.a else td.text
+				for td 
+				in tr.findAll('td')
+			]
 			data = dict(zip(headers, data))
 			itens.append(data)
 
