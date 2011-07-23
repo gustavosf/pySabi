@@ -95,28 +95,21 @@ class SABi:
 	def __getsoup(self, func = None, param = None):
 		"""Busca uma pagina e retorna um soup"""
 		page = self.__getpage(func, param)
-		return BeuatifulSoup(page)
+		return BeautifulSoup(page, convertEntities=BeautifulSoup.HTML_ENTITIES)
 	
 	def loanList(self):
 		page = self.__getpage('loan')
-		h = HTMLParser()
+		soup = self.__getsoup('loan')
 
-		# extrai o header da tabela
-		header = re.findall('class=text3.*?>(.+?)<', page)
-		header = [h.unescape(i).strip() for i in header]
-		
-		# extrai os dados da tabela
-		data = re.findall('class=td1.*?>([^<>]+?)<', page)
-		data = [h.unescape(i).strip() for i in data]
+		table = soup.find('table', cellspacing=2)
+		trs = table.findAll('tr')
 
-		l = len(header) - 1
-		item = {}
 		itens = []
-		for i in range(len(data)):
-			if len(item) == l:
-				itens.append(item)
-				item = {}
-			item[header[i%l]] = data[i]
+		headers = [th.text for th in trs[0].findAll('th')]
+		for tr in trs[1:]:
+			data = [td.text for td in tr.findAll('td')]
+			data = dict(zip(headers, data))
+			itens.append(data)
 
 		return itens
 
