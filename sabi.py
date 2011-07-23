@@ -98,7 +98,7 @@ class SABi:
 		return BeautifulSoup(page, convertEntities=BeautifulSoup.HTML_ENTITIES)
 	
 	def __getlist(self, func):
-		soup = self.__getsoup('loan')
+		soup = self.__getsoup(func)
 
 		table = soup.find('table', cellspacing=2)
 		trs = table.findAll('tr')
